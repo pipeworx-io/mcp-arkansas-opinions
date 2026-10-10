@@ -1,0 +1,18 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.pipeworx-io/arkansas-opinions",
+  "title": "Arkansas Opinions",
+  "description": "arkansas-opinions — current Arkansas Supreme Court and Court of Appeals",
+  "version": "0.1.0",
+  "websiteUrl": "https://pipeworx.io/packs/arkansas-opinions",
+  "repository": {
+    "url": "https://github.com/pipeworx-io/mcp-arkansas-opinions",
+    "source": "github"
+  },
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://gateway.pipeworx.io/arkansas-opinions/mcp"
+    }
+  ]
+}
