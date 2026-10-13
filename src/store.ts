@@ -1,10 +1,9 @@
 /**
  * Reads for arkansas-opinions (fleet #2924).
  *
- * The opinions come from the Arkansas Judiciary's official opinion archive at
- * opinions.arcourts.gov. A scheduled collector
- * (workers/ark-opinions-collector) reads that archive's two RSS feeds every
- * hour, fetches each new or updated opinion, and writes it with every text
+ * The opinions come from the Arkansas Judiciary's official opinions archive.
+ * A scheduled collector (workers/ark-opinions-collector) checks that archive
+ * every hour, reads each new or updated opinion, and writes it with every text
  * version into a D1 database that the gateway hands this pack as `_d1`
  * (pack-manifest "d1Binding": "ARK_OPINIONS_DB"). The table and column names
  * here must match workers/ark-opinions-collector/src/schema.ts.
@@ -21,12 +20,11 @@ export interface D1StmtLike {
   first<T = Record<string, unknown>>(): Promise<T | null>;
 }
 
-export const ARCHIVE = 'https://opinions.arcourts.gov';
-export const FEEDS = {
-  supreme: `${ARCHIVE}/ark/supremecourt/en/rss.do`,
-  appeals: `${ARCHIVE}/ark/courtofappeals/en/rss.do`,
-} as const;
-export const SOURCE = 'Arkansas Judiciary, official opinion archive (opinions.arcourts.gov)';
+// Provenance is publisher + dataset + data_as_of (CLAUDE.md step 9b, fleet
+// #2939). Each opinion still carries its own public page as source_url: that
+// is the record a lawyer checks, not a route. Feed and listing routes stay in
+// the collector.
+export const SOURCE = 'Arkansas Judiciary, official opinions archive';
 export const WINDOW_FROM = '2026-01-01';
 
 export type Court = 'supreme' | 'appeals';
@@ -128,7 +126,6 @@ export function shapeOpinion(r: OpinionRow) {
       'The text of this item has not been read yet, so its citation status is unknown. Do not treat it as citable until it is.',
     item_id: r.item_id,
     source_url: r.source_url,
-    pdf_url: r.pdf_url,
     text_held: r.current_version != null,
     version: r.current_version,
     last_checked: r.last_checked,

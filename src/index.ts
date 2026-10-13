@@ -26,8 +26,8 @@ interface McpToolExport {
 
 /**
  * arkansas-opinions — current Arkansas Supreme Court and Court of Appeals
- * opinions, from the Arkansas Judiciary's official opinion archive
- * (opinions.arcourts.gov, run on Lexum Decisia). Fleet #2924.
+ * opinions with full text and revision history, from the Arkansas Judiciary's
+ * official opinions archive. Fleet #2924.
  *
  * Why this pack exists: the court-listener pack's case-law corpus comes from
  * CourtListener, which itself lags the Arkansas courts by months (its newest
@@ -38,8 +38,9 @@ interface McpToolExport {
  * law is court-listener's job, and lookup_citation there falls through to
  * this pack for a "YYYY Ark." / "YYYY Ark. App." neutral citation it lacks.
  *
- * Every response carries `data_as_of` (when the collector last finished a
- * successful run) and a `source_url` on the official archive.
+ * Every response carries `source` (publisher + dataset) and `data_as_of` (when
+ * the collector last finished a successful run); each opinion carries its own
+ * public page as `source_url`.
  *
  * Versions: slip opinions get editorial corrections after release. When the
  * archive republishes an opinion with changed text, the new text becomes the
@@ -53,8 +54,6 @@ import {
   type Court,
   type D1Like,
   type OpinionRow,
-  ARCHIVE,
-  FEEDS,
   SOURCE,
   WINDOW_FROM,
   coverage,
@@ -78,7 +77,7 @@ const tools: McpToolExport['tools'] = [
   {
     name: 'ark_recent_opinions',
     description:
-      'Newest Arkansas Supreme Court and Arkansas Court of Appeals opinions, newest first, read from the Arkansas Judiciary\'s official opinion archive (opinions.arcourts.gov) every hour. Returns each decision\'s neutral citation (e.g. "2026 Ark. 140", "2026 Ark. App. 449"), case name, decision date, docket number, authoring judge, opinion type, disposition and an official source URL. Use for "what did the Arkansas Supreme Court decide this week", "latest Arkansas Court of Appeals opinions", or recent Arkansas appellate decisions since a date. Covers decisions from 2026-01-01 on.',
+      'Newest Arkansas Supreme Court and Arkansas Court of Appeals opinions, newest first, read from the Arkansas Judiciary\'s official opinions archive every hour. Returns each decision\'s neutral citation (e.g. "2026 Ark. 140", "2026 Ark. App. 449"), case name, decision date, docket number, authoring judge, opinion type, disposition and a link to the opinion\'s own page on the court\'s site. Use for "what did the Arkansas Supreme Court decide this week", "latest Arkansas Court of Appeals opinions", or recent Arkansas appellate decisions since a date. Covers decisions from 2026-01-01 on.',
     summary: 'Latest Arkansas Supreme Court / Court of Appeals opinions from the official archive.',
     inputSchema: {
       type: 'object' as const,
@@ -93,7 +92,7 @@ const tools: McpToolExport['tools'] = [
   {
     name: 'ark_opinion',
     description:
-      'Read one Arkansas Supreme Court or Court of Appeals opinion by its neutral citation ("2026 Ark. 140", "2026 Ark. App. 449") or archive item id: case name, decision date, docket, author, disposition, the full opinion text, its citation status, and its version history (every editorial revision the court published, each with retrieval time and SHA-256). From the Arkansas Judiciary\'s official opinion archive, decisions from 2026-01-01 on. For older Arkansas citations use court-listener lookup_citation.',
+      'Read one Arkansas Supreme Court or Court of Appeals opinion by its neutral citation ("2026 Ark. 140", "2026 Ark. App. 449") or archive item id: case name, decision date, docket, author, disposition, the full opinion text, its citation status, and its version history (every editorial revision the court published, each with retrieval time and SHA-256). From the Arkansas Judiciary\'s official opinions archive, decisions from 2026-01-01 on. For older Arkansas citations use court-listener lookup_citation.',
     summary: 'Text, metadata and version history of one Arkansas appellate opinion by neutral citation.',
     inputSchema: {
       type: 'object' as const,
@@ -108,7 +107,7 @@ const tools: McpToolExport['tools'] = [
   {
     name: 'ark_search_opinions',
     description:
-      'Full-text search of recent Arkansas Supreme Court and Court of Appeals opinions (decisions from 2026-01-01 on, from the Arkansas Judiciary\'s official archive) by subject, party or phrase — "parole eligibility", "termination of parental rights", "Walmart". Filter by court and decision date. Returns matching opinions with neutral citation, case name, date, a highlighted passage and the official source URL; read the whole opinion with ark_opinion. Use quotes for an exact phrase.',
+      'Full-text search of recent Arkansas Supreme Court and Court of Appeals opinions (decisions from 2026-01-01 on, from the Arkansas Judiciary\'s official archive) by subject, party or phrase — "parole eligibility", "termination of parental rights", "Walmart". Filter by court and decision date. Returns matching opinions with neutral citation, case name, date, a highlighted passage and a link to the opinion\'s own page; read the whole opinion with ark_opinion. Use quotes for an exact phrase.',
     summary: 'Full-text search over recent Arkansas appellate opinions, filterable by court and date.',
     inputSchema: {
       type: 'object' as const,
@@ -125,7 +124,7 @@ const tools: McpToolExport['tools'] = [
   {
     name: 'ark_coverage',
     description:
-      'What Arkansas appellate opinions this pack can answer from: per court (Supreme Court, Court of Appeals) the number of opinions, the earliest and latest decision date, the highest neutral citation number per year, how many opinions were revised after release, and when the hourly collection from the official archive (opinions.arcourts.gov) last succeeded. Use before relying on an absence ("is 2026 Ark. 150 out yet?").',
+      'What Arkansas appellate opinions this pack can answer from: per court (Supreme Court, Court of Appeals) the number of opinions, the earliest and latest decision date, the highest neutral citation number per year, how many opinions were revised after release, and when the hourly collection from the Arkansas Judiciary\'s official opinions archive last succeeded. Use before relying on an absence ("is 2026 Ark. 150 out yet?").',
     summary: 'Date range, counts per court and last successful collection for arkansas-opinions.',
     inputSchema: { type: 'object' as const, properties: {} },
   },
@@ -172,9 +171,8 @@ async function recentTool(db: D1Like, args: Record<string, unknown>) {
               : 'No opinion in this range has been published by the court yet. ark_coverage shows the latest decision held and when collection last ran.',
         }
       : {}),
-    data_as_of: asOf,
-    source_url: court ? FEEDS[court] : `${ARCHIVE}/ark/en/nav.do`,
     source: SOURCE,
+    data_as_of: asOf,
   };
 }
 
@@ -213,13 +211,13 @@ export async function opinionPayload(
       retrieved_at: v.retrieved_at,
       sha256: v.sha256,
       chars: v.chars,
-      reason: v.trigger,
+      // The collector's trigger names say how it noticed; callers get what happened.
+      reason: v.trigger === 'rss_updated' || v.trigger === 'rss_relisted' ? 'source_updated' : v.trigger,
       is_current: v.is_current === 1,
     })),
+    source: SOURCE,
     data_as_of: asOf,
     source_url: row.source_url,
-    pdf_url: row.pdf_url,
-    source: SOURCE,
   };
 }
 
@@ -252,8 +250,8 @@ async function opinionTool(db: D1Like, args: Record<string, unknown>) {
         item_id: id,
         message: `No item ${id} is held.`,
         hint: 'Item ids come from ark_recent_opinions or ark_search_opinions. ark_coverage shows the window held.',
+        source: SOURCE,
         data_as_of: await dataAsOf(db),
-        source_url: `${ARCHIVE}/ark/en/nav.do`,
       };
     }
     return opinionPayload(db, row, { version, maxChars });
@@ -281,8 +279,8 @@ async function opinionTool(db: D1Like, args: Record<string, unknown>) {
       hint: before
         ? 'Use court-listener lookup_citation for older Arkansas opinions.'
         : 'If the number is past the latest one in ark_coverage, the court may not have issued it yet; absence here is not proof the citation is wrong.',
+      source: SOURCE,
       data_as_of: asOf,
-      source_url: FEEDS[c.reporter === 'Ark.' ? 'supreme' : 'appeals'],
     };
   }
   const body = await opinionPayload(db, rows[0], { version, maxChars });
@@ -328,9 +326,8 @@ async function searchTool(db: D1Like, args: Record<string, unknown>) {
           hint: `Nothing matched among opinions decided from ${WINDOW_FROM}. For older Arkansas case law use court-listener search_case_law.`,
         }
       : {}),
-    data_as_of: asOf,
-    source_url: `${ARCHIVE}/ark/en/nav.do`,
     source: SOURCE,
+    data_as_of: asOf,
   };
 }
 
@@ -352,7 +349,6 @@ async function coverageTool(db: D1Like) {
       citation_numbers: c.latestCites
         .filter((x) => x.court === p.court)
         .map((x) => ({ year: x.cite_year, lowest: x.min_number, highest: x.max_number })),
-      feed_url: FEEDS[p.court],
     })),
     versions: {
       stored: c.versions?.versions ?? 0,
@@ -361,7 +357,7 @@ async function coverageTool(db: D1Like) {
     last_successful_collection: lastOk
       ? {
           finished_at: lastOk.finished_at,
-          feed_items_read: lastOk.feed_items,
+          items_checked: lastOk.feed_items,
           new_items: lastOk.enqueued_new,
           updated_items: lastOk.enqueued_updated,
           opinions_read: lastOk.fetched,
@@ -369,14 +365,20 @@ async function coverageTool(db: D1Like) {
         }
       : null,
     last_collection_attempt: lastAny
-      ? { started_at: lastAny.started_at, finished_at: lastAny.finished_at, ok: lastAny.ok === 1, error: lastAny.error_detail ?? null }
+      ? { started_at: lastAny.started_at, finished_at: lastAny.finished_at, ok: lastAny.ok === 1, error: redactRoutes(lastAny.error_detail) }
       : null,
-    backfill: c.backfill.map((b) => ({ listing: b.key.replace(/^backfill:/, ''), state: b.value === 'done' ? 'done' : `next page ${b.value}`, updated_at: b.updated_at })),
-    data_as_of: lastOk?.finished_at ?? null,
-    source_url: `${ARCHIVE}/ark/en/rss/index.do`,
+    backfill: c.backfill.map((b) => ({ court_year: b.key.replace(/^backfill:/, ''), state: b.value === 'done' ? 'done' : 'in_progress', updated_at: b.updated_at })),
     source: SOURCE,
-    note: `Collected hourly from the court's own RSS feeds and date listings, from ${WINDOW_FROM}. Earlier Arkansas opinions are in court-listener.`,
+    data_as_of: lastOk?.finished_at ?? null,
+    note: `Collected hourly from the Arkansas Judiciary's official opinions archive, decisions from ${WINDOW_FROM}. Earlier Arkansas opinions are in court-listener.`,
   };
+}
+
+/** A collector error can quote the URL it was fetching; callers get the
+ *  failure, not the route (CLAUDE.md step 9b). */
+function redactRoutes(v: unknown): string | null {
+  if (v == null) return null;
+  return String(v).replace(/https?:\/\/\S+/g, '<archive page>');
 }
 
 async function callTool(name: string, args: Record<string, unknown>): Promise<unknown> {
