@@ -3,7 +3,7 @@
   "name": "io.github.pipeworx-io/arkansas-opinions",
   "title": "Arkansas Opinions",
   "description": "arkansas-opinions — current Arkansas Supreme Court and Court of Appeals opinions with full text…",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "websiteUrl": "https://pipeworx.io/packs/arkansas-opinions",
   "repository": {
     "url": "https://github.com/pipeworx-io/mcp-arkansas-opinions",
