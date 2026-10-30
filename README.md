@@ -5,7 +5,7 @@ neutral citation, case name, decision date, docket, author, disposition, full
 text and every published revision — from the Arkansas Judiciary's official
 opinions archive, decisions from 2026-01-01 on, collected hourly. Fleet #2924.
 
-Part of [Pipeworx](https://pipeworx.io) — an MCP gateway connecting AI agents to 1856+ live data sources. This is an independent, unofficial integration — not affiliated with, endorsed by, or published by the upstream provider.
+Part of [Pipeworx](https://pipeworx.io) — an MCP gateway connecting AI agents to 1863+ live data sources. This is an independent, unofficial integration — not affiliated with, endorsed by, or published by the upstream provider.
 
 It exists because CourtListener, the source behind the `court-listener` pack,
 runs months behind the Arkansas courts: on 2026-10-10 its newest Arkansas
@@ -141,7 +141,7 @@ directly, instead of just this one's:
 }
 ```
 
-Both URLs reach the same gateway and the same 1856+ data sources. The
+Both URLs reach the same gateway and the same 1863+ data sources. The
 only difference is which pack's tools are listed **directly**; `ask_pipeworx`
 reaches all of them from either one.
 
